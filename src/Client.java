@@ -10,38 +10,38 @@ import java.io.IOException;
 import java.util.Scanner;
 public class Client {
 
-    private Socket socket;
-    private BufferedReader bufferedReader;
-    private BufferedWriter  bufferedWriter;
+    private Socket soc;
+    private BufferedReader buff_reader;
+    private BufferedWriter  buff_writer;
     private String username;
 
-    public Client(Socket socket,String username) {
+    public Client(Socket soc, String username) {
         try {
-            this.socket = socket;
-            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.soc = soc;
+            this.buff_writer = new BufferedWriter(new OutputStreamWriter(soc.getOutputStream()));
+            this.buff_reader = new BufferedReader(new InputStreamReader(soc.getInputStream()));
             this.username = username;
         } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
+            closeEverything(soc, buff_reader, buff_writer);
         }
     }
 
     public void sendMessage() {
         try {
-            bufferedWriter.write(username);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
+            buff_writer.write(username);
+            buff_writer.newLine();
+            buff_writer.flush();
 
             Scanner sc = new Scanner(System.in);
 
-            while (socket.isConnected()) {
-                String messageToSend = sc.nextLine();
-                bufferedWriter.write(username + ": " + messageToSend);
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
+            while (soc.isConnected()) {
+                String msg = sc.nextLine();
+                buff_writer.write(username + ": " + msg);
+                buff_writer.newLine();
+                buff_writer.flush();
             }
         } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
+            closeEverything(soc, buff_reader, buff_writer);
         }
     }
 
@@ -50,30 +50,31 @@ public class Client {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String messageFromGroupchat;
-
-                while (socket.isConnected()) {
+                // message from group chat
+                String msg;
+                // wait for a new message
+                while (soc.isConnected()) {
                     try {
-                        messageFromGroupchat = bufferedReader.readLine();
-                        System.out.println(messageFromGroupchat);
+                        msg = buff_reader.readLine();
+                        System.out.println(msg);
                     } catch (IOException e) {
-                        closeEverything(socket, bufferedReader, bufferedWriter);
+                        closeEverything(soc, buff_reader, buff_writer);
                     }
                 }
             }
         }).start();
     }
 
-    public void closeEverything(Socket socket,  BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+    public void closeEverything(Socket soc,  BufferedReader buff_reader, BufferedWriter buff_writer) {
         try {
-            if (bufferedReader != null) {
-                bufferedReader.close();
+            if (buff_reader != null) {
+                buff_reader.close();
             }
-            if (bufferedReader != null) {
-                bufferedReader.close();
+            if (buff_writer != null) {
+                buff_writer.close();
             }
-            if (socket != null) {
-                socket.close();
+            if (soc != null) {
+                soc.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -85,8 +86,8 @@ public class Client {
            Scanner sc = new Scanner(System.in);
            System.out.println("Enter your username :");
            String username = sc.nextLine();
-           Socket socket = new Socket("localhost",8888);
-           Client client = new Client(socket, username);
+           Socket soc = new Socket("localhost",8888);
+           Client client = new Client(soc, username);
            client.listenForMessage();
            client.sendMessage();
        } catch (UnknownHostException e) {
