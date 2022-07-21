@@ -5,37 +5,35 @@ import java.net.SocketException;
 import java.io.IOException;
 
 public class Server {
-    private ServerSocket serversoc;
+    private ServerSocket soc_s;
 
-    public Server(ServerSocket serversoc) {
-        this.serversoc = serversoc;
+    public Server(ServerSocket soc_s) {
+        this.soc_s = soc_s;
     }
 
     public void start_server() {
         try {
-            while (!serversoc.isClosed()) {
-                Socket socket = serversoc.accept();
+            while (!this.soc_s.isClosed()) {
+                Socket soc = soc_s.accept();
                 System.out.println("A new client has connected.");
-                ClientHandler clienthandler = new ClientHandler(socket);
+                ClientHandler client_handler = new ClientHandler(soc);
 
-                Thread thread = new Thread(clienthandler);
+                Thread thread = new Thread(client_handler);
                 thread.start();
-            }
-        } catch (IOException e) {
-
-        }
-    }
-
-    public void closeServerSocket() {
-        try {
-            if (serversoc != null) {
-                serversoc.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
+    public void closeServerSocket() {
+        try {
+            if (this.soc_s != null) {
+                soc_s.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     public static void main(String[] args) throws SocketException {
         try {
             ServerSocket serversocket = new ServerSocket(8888);

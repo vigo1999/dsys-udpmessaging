@@ -6,75 +6,76 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class ClientHandler implements Runnable{
+public class ClientHandler implements Runnable {
 
-    public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
-    private Socket socket;
-    private BufferedReader bufferedReader;
-    private BufferedWriter bufferedWriter;
-    private String clientUsername;
+    public static ArrayList<ClientHandler> client_handlers = new ArrayList<>();
+    private Socket soc;
+    private BufferedReader buff_reader;
+    private BufferedWriter buff_writer;
+    private String cli_username;
 
-    public ClientHandler(Socket socket) {
+    public ClientHandler(Socket soc) {
         try {
-            this.socket = socket;
-            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.clientUsername = bufferedReader.readLine();
-            clientHandlers.add(this);
-            broadcastMessage("Server " + clientUsername + " has entered the chat !");
+            this.soc = soc;
+            this.buff_writer = new BufferedWriter(new OutputStreamWriter(soc.getOutputStream()));
+            this.buff_reader = new BufferedReader(new InputStreamReader(soc.getInputStream()));
+            this.cli_username = buff_reader.readLine();
+            client_handlers.add(this);
+            broadcastMessage("Server : " + cli_username + " has entered the chat !");
 
         } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
+            closeEverything(soc, buff_reader, buff_writer);
         }
 
     }
 
     @Override
     public void run() {
-        String messageFromClient;
 
-        while (socket.isConnected()) {
+        String msg;
+
+        while (soc.isConnected()) {
             try {
-                messageFromClient = bufferedReader.readLine();
-                broadcastMessage(messageFromClient);
+                msg = buff_reader.readLine();
+                broadcastMessage(msg);
             } catch (IOException e) {
-                closeEverything(socket, bufferedReader, bufferedWriter);
+                closeEverything(soc, buff_reader, buff_writer);
                 break;
             }
         }
     }
 
-    public void broadcastMessage(String messageToSend) {
-        for (ClientHandler clienthandler : clientHandlers) {
+    public void broadcastMessage(String msg) {
+        for (ClientHandler client_handler : client_handlers) {
             try {
-                if (!clienthandler.clientUsername.equals(clientUsername)) {
-                    clienthandler.bufferedWriter.write(messageToSend);
-                    clienthandler.bufferedWriter.newLine();
-                    clienthandler.bufferedWriter.flush();
+                if (!client_handler.cli_username.equals(cli_username)) {
+                    client_handler.buff_writer.write(msg);
+                    client_handler.buff_writer.newLine();
+                    client_handler.buff_writer.flush();
                 }
             } catch (IOException e) {
-                closeEverything(socket, bufferedReader, bufferedWriter);
-
+                closeEverything(soc, buff_reader, buff_writer);
             }
         }
     }
 
     public void removeClientHandler() {
-        clientHandlers.remove(this);
-        broadcastMessage("Server : " + clientUsername + " has left.");
+        client_handlers.remove(this);
+        broadcastMessage("Server : " + cli_username + " has left.");
     }
 
-    public void closeEverything(Socket socket,  BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+    public void closeEverything(Socket soc,  BufferedReader buff_reader,
+                                BufferedWriter buff_writer) {
         removeClientHandler();
         try {
-            if (bufferedReader != null) {
-                bufferedReader.close();
+            if (buff_reader != null) {
+                buff_reader.close();
             }
-            if (bufferedReader != null) {
-                bufferedReader.close();
+            if (buff_writer != null) {
+                buff_writer.close();
             }
-            if (socket != null) {
-                socket.close();
+            if (soc != null) {
+                soc.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
