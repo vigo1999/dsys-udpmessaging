@@ -1,40 +1,49 @@
-import java.net.DatagramSocket;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketException;
+
+import java.io.IOException;
+
 public class Server {
+    private ServerSocket serversoc;
 
-    private DatagramSocket dsoc;
-    private byte[] buffer = new byte[256];
-
-    public Server(DatagramSocket dsoc) {
-        this.dsoc = dsoc;
+    public Server(ServerSocket serversoc) {
+        this.serversoc = serversoc;
     }
 
-    public void receiveThenSend() {
+    public void start_server() {
+        try {
+            while (!serversoc.isClosed()) {
+                Socket socket = serversoc.accept();
+                System.out.println("A new client has connected.");
+                ClientHandler clienthandler = new ClientHandler(socket);
 
-        while (true) {
-            try {
-                DatagramPacket dpac = new DatagramPacket(buffer, buffer.length);
-                dsoc.receive(dpac);
-                InetAddress inet = dpac.getAddress();
-                int port = dpac.getPort();
-                String messageReceived = new String(dpac.getData(), 0, dpac.getLength());
-                System.out.println("Message from client : " + messageReceived);
-                dpac = new DatagramPacket(buffer, buffer.length, inet, port);
-                dsoc.send(dpac);
+                Thread thread = new Thread(clienthandler);
+                thread.start();
+            }
+        } catch (IOException e) {
 
-            } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
-                }
+        }
+    }
+
+    public void closeServerSocket() {
+        try {
+            if (serversoc != null) {
+                serversoc.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     public static void main(String[] args) throws SocketException {
-        DatagramSocket dsoc = new DatagramSocket(8888);
-        Server server = new Server(dsoc);
-        server.receiveThenSend();
+        try {
+            ServerSocket serversocket = new ServerSocket(8888);
+            Server server = new Server(serversocket);
+            server.start_server();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }

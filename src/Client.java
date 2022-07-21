@@ -1,55 +1,99 @@
-import java.net.DatagramSocket;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
+import java.net.Socket;
 import java.net.SocketException;
-import java.io.IOException;
-import java.lang.InterruptedException;
 import java.net.UnknownHostException;
-import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
 
+import java.util.Scanner;
 public class Client {
 
-    private DatagramSocket dsoc;
-    private InetAddress inet;
-    private byte[] buffer;
+    private Socket socket;
+    private BufferedReader bufferedReader;
+    private BufferedWriter  bufferedWriter;
+    private String username;
 
-    public Client(DatagramSocket dsoc, InetAddress inet) {
-        this.dsoc = dsoc;
-        this.inet = inet;
-
-    }
-
-    public void sendThenReceive() {
-
-        Scanner scanner = new Scanner(System.in);
-
-        while (true) {
-            try {
-                String messageToSend = scanner.nextLine();
-                buffer = messageToSend.getBytes();
-                DatagramPacket dpac = new DatagramPacket(buffer, buffer.length, inet, 8888);
-                dsoc.send(dpac);
-                dsoc.receive(dpac);
-                String msgFromServer = new String(dpac.getData(), 0, dpac.getLength());
-                System.out.println("Server Said you said : " + msgFromServer);
-            } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
-                }
-        }
-    }
-
-    public static void main(String[] args) throws SocketException {
+    public Client(Socket socket,String username) {
         try {
-            DatagramSocket dsoc = new DatagramSocket();
-            InetAddress inet = InetAddress.getLocalHost();
-            Client client = new Client(dsoc, inet);
-            System.out.println("Send datagram packet to a server.");
-            client.sendThenReceive();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-
+            this.socket = socket;
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.username = username;
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
         }
-
     }
+
+    public void sendMessage() {
+        try {
+            bufferedWriter.write(username);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+
+            Scanner sc = new Scanner(System.in);
+
+            while (socket.isConnected()) {
+                String messageToSend = sc.nextLine();
+                bufferedWriter.write(username + ": " + messageToSend);
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+            }
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
+        }
+    }
+
+    public void listenForMessage() {
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String messageFromGroupchat;
+
+                while (socket.isConnected()) {
+                    try {
+                        messageFromGroupchat = bufferedReader.readLine();
+                        System.out.println(messageFromGroupchat);
+                    } catch (IOException e) {
+                        closeEverything(socket, bufferedReader, bufferedWriter);
+                    }
+                }
+            }
+        }).start();
+    }
+
+    public void closeEverything(Socket socket,  BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+        try {
+            if (bufferedReader != null) {
+                bufferedReader.close();
+            }
+            if (bufferedReader != null) {
+                bufferedReader.close();
+            }
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+     public static void main(String[] args) throws SocketException {
+
+       try {
+           Scanner sc = new Scanner(System.in);
+           System.out.println("Enter your username :");
+           String username = sc.nextLine();
+           Socket socket = new Socket("localhost",8888);
+           Client client = new Client(socket, username);
+           client.listenForMessage();
+           client.sendMessage();
+       } catch (UnknownHostException e) {
+           e.printStackTrace();
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
+
+     }
 }
